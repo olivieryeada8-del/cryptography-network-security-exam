@@ -1,0 +1,33 @@
+# TEMPLATE ONLY - do not apply until every value is supplied and reviewed by
+# the authorised laboratory administrator. This is a routed gateway example.
+# Replace the five quoted placeholders with validated nftables values.
+define LAB_IFACE = "__LAB_INTERFACE__"
+define STAFF_NET = "__STAFF_CIDR__"
+define GUEST_NET = "__GUEST_CIDR__"
+define RECORDS_SERVER = "__RECORDS_SERVER_IP__"
+define APPROVED_PROTOCOL = "__ASSESSOR_APPROVED_PROTOCOL__"
+define APPROVED_SERVICE_PORT = __ASSESSOR_APPROVED_PORT__
+
+table inet ulk_lab_filter {
+    chain forward {
+        type filter hook forward priority filter; policy drop;
+
+        # Place explicit guest denial before established-flow acceptance.
+        iifname $LAB_IFACE ip saddr $GUEST_NET ip daddr $RECORDS_SERVER drop
+
+        # Only staff may reach the single service selected by the assessor.
+        iifname $LAB_IFACE ip saddr $STAFF_NET ip daddr $RECORDS_SERVER \
+            meta l4proto $APPROVED_PROTOCOL th dport $APPROVED_SERVICE_PORT \
+            ct state new,established accept
+        ip saddr $RECORDS_SERVER meta l4proto $APPROVED_PROTOCOL \
+            th sport $APPROVED_SERVICE_PORT \
+            ct state established accept
+
+        # Deny all other sources to that service and block remaining forwarded
+        # traffic under policy drop.
+        ip daddr $RECORDS_SERVER meta l4proto $APPROVED_PROTOCOL \
+            th dport $APPROVED_SERVICE_PORT drop
+        ct state established,related accept
+        counter drop
+    }
+}

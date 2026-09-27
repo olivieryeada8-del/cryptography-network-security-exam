@@ -1,0 +1,11 @@
+# Never commit generated keys, data, or environment-specific settings.
+*.key
+*.key.b64
+.env
+secrets/
+sample_data/
+*.enc
+*.decrypted
+*.sha256
+__pycache__/
+.venv/
